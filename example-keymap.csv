@@ -1,0 +1,6 @@
+# ACTION, (UserAlias), keyboardCombo
+# Special keys
+#      ESC, ALT, CTRL, BACKSPACE, SHIFT, F1-12
+# midiKeycode, keyboardCommand
+0x5E,CTRL+a
+0x5D,CTRL+b
