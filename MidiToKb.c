@@ -44,6 +44,8 @@
 #include <alsa/asoundlib.h>
 #include <linux/uinput.h>
 
+#define CC_ASSERT(cond) int __constraint_violated[cond] = {0}
+
 #define NSEC_PER_SEC 1000000000L
 
 #define MIDI_TO_KB_VERSION_STR "1.0"
@@ -59,127 +61,83 @@ static snd_rawmidi_t *input, **inputp;
 static snd_rawmidi_t *output, **outputp;
 
 
-#define CC_ASSERT(cond) int __constraint_violated[cond] = {0}
 #define ARRAY_LENGTH(a) (sizeof(a)/sizeof(a[0]))
 
-
-const char *SUPPORTED_KEYS_ASCII[] = {
-    "ESC",
-    "ALT",
-    "CTRL",
-    "BACKSPACE",
-    "SHIFT",
-    " ",
-    "a",
-    "b",
-    "c",
-    "d",
-    "e",
-    "f",
-    "g",
-    "h",
-    "i",
-    "j",
-    "k",
-    "l",
-    "m",
-    "n",
-    "o",
-    "p",
-    "q",
-    "r",
-    "s",
-    "t",
-    "u",
-    "v",
-    "w",
-    "x",
-    "y",
-    "z",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "0",
-    "F1",
-    "F2",
-    "F3",
-    "F4",
-    "F5",
-    "F6",
-    "F7",
-    "F8",
-    "F9",
-    "F10",
-    "F11",
-    "F12",
-
+struct supported_keys_t {
+    const char *ascii;
+    int keyCode;
 };
-const int SUPPORTED_KEYS_CODE[] = {
-    KEY_ESC,
-    KEY_LEFTALT,
-    KEY_LEFTCTRL,
-    KEY_LEFTSHIFT,
-    KEY_BACKSPACE,
-    KEY_SPACE,
-    KEY_A,
-    KEY_B,
-    KEY_C,
-    KEY_D,
-    KEY_E,
-    KEY_F,
-    KEY_G,
-    KEY_H,
-    KEY_I,
-    KEY_J,
-    KEY_K,
-    KEY_L,
-    KEY_M,
-    KEY_N,
-    KEY_O,
-    KEY_P,
-    KEY_Q,
-    KEY_R,
-    KEY_S,
-    KEY_T,
-    KEY_U,
-    KEY_V,
-    KEY_W,
-    KEY_X,
-    KEY_Y,
-    KEY_Z,
-    KEY_1,
-    KEY_2,
-    KEY_3,
-    KEY_4,
-    KEY_5,
-    KEY_6,
-    KEY_7,
-    KEY_8,
-    KEY_9,
-    KEY_0,
-    KEY_F1,
-    KEY_F2,
-    KEY_F3,
-    KEY_F4,
-    KEY_F5,
-    KEY_F6,
-    KEY_F7,
-    KEY_F8,
-    KEY_F9,
-    KEY_F10,
-    KEY_F11,
-    KEY_F12,
+
+const struct supported_keys_t SUPPORTED_KEYS_ARRAY[] = {
+//  {ascii,         keyCode         },
+    {"A",           KEY_A           },
+    {"B",           KEY_B           },
+    {"C",           KEY_C           },
+    {"D",           KEY_D           },
+    {"E",           KEY_E           },
+    {"F",           KEY_F           },
+    {"G",           KEY_G           },
+    {"H",           KEY_H           },
+    {"I",           KEY_I           },
+    {"J",           KEY_J           },
+    {"K",           KEY_K           },
+    {"L",           KEY_L           },
+    {"M",           KEY_M           },
+    {"N",           KEY_N           },
+    {"O",           KEY_O           },
+    {"P",           KEY_P           },
+    {"Q",           KEY_Q           },
+    {"R",           KEY_R           },
+    {"S",           KEY_S           },
+    {"T",           KEY_T           },
+    {"U",           KEY_U           },
+    {"V",           KEY_V           },
+    {"W",           KEY_W           },
+    {"X",           KEY_X           },
+    {"Y",           KEY_Y           },
+    {"Z",           KEY_Z           },
+    {"1",           KEY_1           },
+    {"2",           KEY_2           },
+    {"3",           KEY_3           },
+    {"4",           KEY_4           },
+    {"5",           KEY_5           },
+    {"6",           KEY_6           },
+    {"7",           KEY_7           },
+    {"8",           KEY_8           },
+    {"9",           KEY_9           },
+    {"0",           KEY_0           },
+    {"F1",          KEY_F1          },
+    {"F2",          KEY_F2          },
+    {"F3",          KEY_F3          },
+    {"F4",          KEY_F4          },
+    {"F5",          KEY_F5          },
+    {"F6",          KEY_F6          },
+    {"F7",          KEY_F7          },
+    {"F8",          KEY_F8          },
+    {"F9",          KEY_F9          },
+    {"F10",         KEY_F10         },
+    {"F11",         KEY_F11         },
+    {"F12",         KEY_F12         },
+    {"ESC",         KEY_ESC         },
+    {"ALT",         KEY_LEFTALT     },
+    {"CTRL",        KEY_LEFTCTRL    },
+    {"SHIFT",       KEY_LEFTSHIFT   },
+    {"BACKSPACE",   KEY_BACKSPACE   },
+    {" ",           KEY_SPACE       },
+    {"SPACE",       KEY_SPACE       },
+    {"PG_UP",       KEY_PAGEUP      },
+    {"PG_DOWN",     KEY_PAGEDOWN    },
+    {"UP",          KEY_UP          },
+    {"DOWN",        KEY_DOWN        },
+    {"LEFT",        KEY_LEFT        },
+    {"RIGHT",       KEY_RIGHT       },
+    {"DEL",         KEY_DELETE      },
+    {"RETURN",      KEY_ENTER       },
+    {"MINUS",       KEY_MINUS       },
+    {"EQUAL",       KEY_EQUAL       },
+    {"HOME",        KEY_HOME        },
 };
-#define KEY_COUNT (ARRAY_LENGTH(SUPPORTED_KEYS_ASCII))
-
-CC_ASSERT(ARRAY_LENGTH(SUPPORTED_KEYS_ASCII) == ARRAY_LENGTH(SUPPORTED_KEYS_CODE));
-
+#define KEY_COUNT (ARRAY_LENGTH(SUPPORTED_KEYS_ARRAY))
 
 typedef struct KeymapNodeT
 {
@@ -273,11 +231,16 @@ static int load_keymap(char *keymap_file)
     return 0;
 }
 
-static char* keymap_get_action(unsigned char key)
+static const char* keymap_get_action(unsigned char key)
 {
-    char *action = NULL;
+    if (gKeymapRoot == NULL)
+    {
+        // No keymap loaded
+        return NULL;
+    }
+
+    const char *action = NULL;
     KEYMAP_NODE_T *currentNode = gKeymapRoot;
-    assert(currentNode != NULL);
     do
     {
         if (currentNode->key == key)
@@ -301,7 +264,7 @@ static int initialize_kb(void)
     ioctl(kbFd, UI_SET_EVBIT, EV_KEY);
     for (int keyIdx; keyIdx < KEY_COUNT; keyIdx++)
     {
-        ioctl(kbFd, UI_SET_KEYBIT, SUPPORTED_KEYS_CODE[keyIdx]);
+        ioctl(kbFd, UI_SET_KEYBIT, SUPPORTED_KEYS_ARRAY[keyIdx].keyCode);
     }
 
     struct uinput_setup usetup = {0};
@@ -328,12 +291,13 @@ static int str_key_to_event(char *key)
     int result = -1;
     for (int keyIdx = 0; keyIdx < KEY_COUNT; keyIdx++)
     {
-        if (strcmp(SUPPORTED_KEYS_ASCII[keyIdx], key) == 0)
+        if (strcmp(SUPPORTED_KEYS_ARRAY[keyIdx].ascii, key) == 0)
         {
-            result = SUPPORTED_KEYS_CODE[keyIdx];
+            result = SUPPORTED_KEYS_ARRAY[keyIdx].keyCode;
             break;
         }
     }
+    printf("%s=%#x; ", key, result);
     return result;
 }
 
@@ -360,28 +324,29 @@ static void emit_key(int kbFd, char *keys, int keyCnt)
             write(kbFd, &keyEvt, sizeof(keyEvt));
         }
         write(kbFd, &reportEvt, sizeof(reportEvt));
+
     }
 }
 
-static void perform_action(int kbFd, char *action)
+static void perform_action(int kbFd, const char *action)
 {
+    char *actionCpy = (char*)malloc(strlen(action));
+    strcpy(actionCpy, action);
     char events[10] = {0};
     int event_cnt = 0;
-    char *next_key = strtok(action, "+");
+    char *next_key = strtok(actionCpy, "+");
+    printf("Tokens: ");
     while (next_key != NULL)
     {
         char next_evt = str_key_to_event(next_key);
 
-        if (next_evt == -1)
-        {
-            printf("Unrecognized keyword: %s\n", next_key);
-        }
-        else
+        if (next_evt != -1)
         {
             events[event_cnt++] = next_evt;
         }
         next_key = strtok(NULL, "+");
     }
+    printf("\n");
 
     emit_key(kbFd, events, event_cnt);
 }
@@ -646,7 +611,7 @@ static void parse_rx_data(int kbFd, unsigned char *buf, int bufLen)
     {
         unsigned char data = buf[currentIdx++];
         unsigned char dataNext = buf[currentIdx];
-        char *action = keymap_get_action(data);
+        const char *action = keymap_get_action(data);
         if (data >= 0x80)  // Control characters
         {
             //
@@ -754,18 +719,16 @@ int main(int argc, char *argv[])
         error("port must be specified!");
         goto _exit2;
     }
-    if (strcmp(keymap_file, "") == 0)
-    {
-        error("The keymap file must be specified");
-        goto _exit2;
-    }
 
 
-    err = load_keymap(keymap_file);
-    if (err)
+    if (strcmp(keymap_file, "") != 0)
     {
-        error("Failed to load keymap, error code %d", err);
-        goto _exit2;
+        err = load_keymap(keymap_file);
+        if (err)
+        {
+            error("Failed to load keymap, error code %d", err);
+            goto _exit2;
+        }
     }
 
     inputp = &input;

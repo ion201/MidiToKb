@@ -1,6 +1,16 @@
-# ACTION, (UserAlias), keyboardCombo
-# Special keys
-#      ESC, ALT, CTRL, BACKSPACE, SHIFT, F1-12
+# Keystrokes will be entered in the order supplied.
+# Control keys should be placed first.
+# Eg:   SHIFT+B ==> "B"
+#       B+SHIFT ==> "b"
+#
+# A-Z and 0-9 characters are represented as on the keyboard.
+# Special keys:
+#       ESC, ALT, CTRL, BACKSPACE, SHIFT, F1-12, SPACE
+#       PG_UP, PG_DOWN, UP, DOWN, LEFT, RIGHT, DEL, RETURN
+#       PLUS, EQUAL, HOME
+#
+#
 # midiKeycode, keyboardCommand
-0x5E,CTRL+a
-0x5D,CTRL+b
+0x5B,HOME
+0x5D,SPACE
+0x5E,SPACE
